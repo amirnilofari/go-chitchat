@@ -21,6 +21,7 @@ func CreatePost() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		var post models.Post
+		var thread models.Thread
 		defer cancel()
 
 		// validate the request body
@@ -35,10 +36,18 @@ func CreatePost() gin.HandlerFunc {
 			return
 		}
 
+		newThread := models.Thread{
+			ID:        primitive.NewObjectID(),
+			Message:   thread.Message,
+			CreatedAt: time.Now(),
+		}
+
 		newPost := models.Post{
 			ID:          primitive.NewObjectID(),
 			Title:       post.Title,
 			Description: post.Description,
+			CreatedAt:   time.Now(),
+			Thread:      newThread,
 		}
 
 		result, err := postCollection.InsertOne(ctx, newPost)
@@ -86,7 +95,7 @@ func EditAPost() gin.HandlerFunc {
 			return
 		}
 
-		update := bson.M{"title": post.Title, "description": post.Description}
+		update := bson.M{"title": post.Title, "description": post.Description, "created_at": post.CreatedAt}
 		result, err := postCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{
